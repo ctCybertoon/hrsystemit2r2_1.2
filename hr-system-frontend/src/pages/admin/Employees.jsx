@@ -1,6 +1,47 @@
 import { useEffect, useState } from 'react'
 import axios from '../../api/axios'
 
+const sharedStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; }
+  .hr-root { font-family: 'DM Sans', sans-serif; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .page-title { font-size: 22px; font-weight: 700; color: #2c3320; }
+  .btn-primary { background: #6b7c52; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; letter-spacing: 0.01em; }
+  .btn-primary:hover { background: #5a6944; }
+  .table-wrap { background: #fff; border-radius: 12px; border: 1px solid #e8ede6; box-shadow: 0 1px 4px rgba(74,85,58,0.06); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: #f5f7f2; }
+  th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: #7a8a66; text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid #e8ede6; }
+  td { padding: 13px 16px; color: #3c4830; border-bottom: 1px solid #f0f3ed; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbf8; }
+  .td-muted { color: #8a9278; }
+  .td-mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+  .badge-active { background: #eaf2e8; color: #4a6e3c; }
+  .badge-inactive { background: #fdf0f0; color: #a03030; }
+  .btn-link-edit { background: none; border: none; color: #6b7c52; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; font-family: 'DM Sans', sans-serif; }
+  .btn-link-edit:hover { text-decoration: underline; }
+  .btn-link-del { background: none; border: none; color: #b05050; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; font-family: 'DM Sans', sans-serif; }
+  .btn-link-del:hover { text-decoration: underline; }
+  .empty-row { text-align: center; padding: 48px !important; color: #b0ba9c !important; font-size: 13px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(30,36,22,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal-box { background: #fff; border-radius: 14px; padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(30,36,22,0.18); }
+  .modal-title { font-size: 17px; font-weight: 700; color: #2c3320; margin-bottom: 20px; }
+  .field-label { font-size: 12px; font-weight: 600; color: #7a8a66; margin-bottom: 5px; display: block; letter-spacing: 0.04em; text-transform: uppercase; }
+  .field-input { width: 100%; border: 1px solid #dde3d6; border-radius: 8px; padding: 9px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: #2c3320; background: #fafbf8; transition: border 0.15s, box-shadow 0.15s; outline: none; }
+  .field-input:focus { border-color: #6b7c52; box-shadow: 0 0 0 3px rgba(107,124,82,0.12); background: #fff; }
+  .field-group { margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .error-banner { background: #fdf0f0; border: 1px solid #f0d0d0; color: #a03030; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-submit { flex: 1; background: #6b7c52; color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+  .btn-submit:hover { background: #5a6944; }
+  .btn-cancel { flex: 1; background: #f2f4ef; color: #5a6650; border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+  .btn-cancel:hover { background: #e8ede2; }
+`
+
 const empty = {
   first_name: '', last_name: '', email: '', phone: '',
   position: '', salary: '', hire_date: '', status: 'active',
@@ -18,105 +59,72 @@ function Employees() {
 
   const fetchAll = async () => {
     const [emp, dept, loc] = await Promise.all([
-      axios.get('/employees'),
-      axios.get('/departments'),
-      axios.get('/locations'),
+      axios.get('/employees'), axios.get('/departments'), axios.get('/locations'),
     ])
-    setEmployees(emp.data)
-    setDepartments(dept.data)
-    setLocations(loc.data)
+    setEmployees(emp.data); setDepartments(dept.data); setLocations(loc.data)
   }
 
   useEffect(() => { fetchAll() }, [])
 
-  const openAdd = () => {
-    setForm(empty)
-    setEditId(null)
-    setError('')
-    setShowModal(true)
-  }
-
+  const openAdd = () => { setForm(empty); setEditId(null); setError(''); setShowModal(true) }
   const openEdit = (emp) => {
     setForm({
-      first_name: emp.first_name, last_name: emp.last_name,
-      email: emp.email, phone: emp.phone || '',
-      position: emp.position, salary: emp.salary,
+      first_name: emp.first_name, last_name: emp.last_name, email: emp.email,
+      phone: emp.phone || '', position: emp.position, salary: emp.salary,
       hire_date: emp.hire_date, status: emp.status,
-      department_id: emp.department_id,
-      location_id: emp.location_id,
-      user_id: emp.user_id,
+      department_id: emp.department_id, location_id: emp.location_id, user_id: emp.user_id,
     })
-    setEditId(emp.id)
-    setError('')
-    setShowModal(true)
+    setEditId(emp.id); setError(''); setShowModal(true)
   }
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault(); setError('')
     try {
-      if (editId) {
-        await axios.put(`/employees/${editId}`, form)
-      } else {
-        await axios.post('/employees', form)
-      }
-      setShowModal(false)
-      fetchAll()
-    } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong')
-    }
+      if (editId) { await axios.put(`/employees/${editId}`, form) }
+      else { await axios.post('/employees', form) }
+      setShowModal(false); fetchAll()
+    } catch (err) { setError(err.response?.data?.message || 'Something went wrong') }
   }
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this employee?')) return
-    await axios.delete(`/employees/${id}`)
-    fetchAll()
+    await axios.delete(`/employees/${id}`); fetchAll()
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">👥 Employees</h2>
-        <button onClick={openAdd}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-          + Add Employee
-        </button>
+    <div className="hr-root">
+      <style>{sharedStyles}</style>
+
+      <div className="page-header">
+        <div className="page-title">Employees</div>
+        <button className="btn-primary" onClick={openAdd}>+ Add Employee</button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-            <tr>
-              {['Name', 'Email', 'Position', 'Department', 'Salary', 'Status', 'Actions'].map(h => (
-                <th key={h} className="px-4 py-3 text-left">{h}</th>
-              ))}
-            </tr>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>{['Name', 'Email', 'Position', 'Department', 'Salary', 'Status', 'Actions'].map(h => <th key={h}>{h}</th>)}</tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {employees.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-gray-400">No employees yet</td></tr>
+              <tr><td colSpan={7} className="empty-row">No employees yet</td></tr>
             ) : employees.map(emp => (
-              <tr key={emp.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{emp.first_name} {emp.last_name}</td>
-                <td className="px-4 py-3 text-gray-500">{emp.email}</td>
-                <td className="px-4 py-3">{emp.position}</td>
-                <td className="px-4 py-3">{emp.department?.name || '—'}</td>
-                <td className="px-4 py-3">₱{Number(emp.salary).toLocaleString()}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    emp.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                  }`}>{emp.status}</span>
+              <tr key={emp.id}>
+                <td style={{ fontWeight: 600 }}>{emp.first_name} {emp.last_name}</td>
+                <td className="td-muted">{emp.email}</td>
+                <td>{emp.position}</td>
+                <td className="td-muted">{emp.department?.name || '—'}</td>
+                <td className="td-mono">₱{Number(emp.salary).toLocaleString()}</td>
+                <td>
+                  <span className={`badge ${emp.status === 'active' ? 'badge-active' : 'badge-inactive'}`}>{emp.status}</span>
                 </td>
-                <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => openEdit(emp)}
-                    className="text-blue-600 hover:underline text-xs">Edit</button>
-                  <button onClick={() => handleDelete(emp.id)}
-                    className="text-red-500 hover:underline text-xs">Delete</button>
+                <td>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button className="btn-link-edit" onClick={() => openEdit(emp)}>Edit</button>
+                    <button className="btn-link-del" onClick={() => handleDelete(emp.id)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -124,107 +132,76 @@ function Employees() {
         </table>
       </div>
 
-      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">{editId ? 'Edit Employee' : 'Add Employee'}</h3>
-
-            {error && <div className="bg-red-100 text-red-600 px-4 py-2 rounded mb-4 text-sm">{error}</div>}
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-gray-600">First Name</label>
-                  <input name="first_name" value={form.first_name} onChange={handleChange} required
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <div className="modal-title">{editId ? 'Edit Employee' : 'Add Employee'}</div>
+            {error && <div className="error-banner">{error}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="grid-2">
+                <div className="field-group">
+                  <label className="field-label">First Name</label>
+                  <input className="field-input" name="first_name" value={form.first_name} onChange={handleChange} required />
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Last Name</label>
-                  <input name="last_name" value={form.last_name} onChange={handleChange} required
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                <div className="field-group">
+                  <label className="field-label">Last Name</label>
+                  <input className="field-input" name="last_name" value={form.last_name} onChange={handleChange} required />
                 </div>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Email</label>
-                <input name="email" type="email" value={form.email} onChange={handleChange} required
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              <div className="field-group">
+                <label className="field-label">Email</label>
+                <input className="field-input" name="email" type="email" value={form.email} onChange={handleChange} required />
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Phone</label>
-                <input name="phone" value={form.phone} onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              <div className="field-group">
+                <label className="field-label">Phone</label>
+                <input className="field-input" name="phone" value={form.phone} onChange={handleChange} />
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Position</label>
-                <input name="position" value={form.position} onChange={handleChange} required
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              <div className="field-group">
+                <label className="field-label">Position</label>
+                <input className="field-input" name="position" value={form.position} onChange={handleChange} required />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-gray-600">Salary</label>
-                  <input name="salary" type="number" value={form.salary} onChange={handleChange} required
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              <div className="grid-2">
+                <div className="field-group">
+                  <label className="field-label">Salary</label>
+                  <input className="field-input" name="salary" type="number" value={form.salary} onChange={handleChange} required />
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Hire Date</label>
-                  <input name="hire_date" type="date" value={form.hire_date} onChange={handleChange} required
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                <div className="field-group">
+                  <label className="field-label">Hire Date</label>
+                  <input className="field-input" name="hire_date" type="date" value={form.hire_date} onChange={handleChange} required />
                 </div>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Department</label>
-                <select name="department_id" value={form.department_id} onChange={handleChange} required
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+              <div className="field-group">
+                <label className="field-label">Department</label>
+                <select className="field-input" name="department_id" value={form.department_id} onChange={handleChange} required>
                   <option value="">Select Department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Location</label>
-                <select name="location_id" value={form.location_id} onChange={handleChange} required
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+              <div className="field-group">
+                <label className="field-label">Location</label>
+                <select className="field-input" name="location_id" value={form.location_id} onChange={handleChange} required>
                   <option value="">Select Location</option>
-                  {locations.map(l => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))}
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">User ID</label>
-                <input name="user_id" type="number" value={form.user_id} onChange={handleChange} required
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="e.g. 1" />
+              <div className="grid-2">
+                <div className="field-group">
+                  <label className="field-label">User ID</label>
+                  <input className="field-input" name="user_id" type="number" value={form.user_id} onChange={handleChange} required />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Status</label>
+                  <select className="field-input" name="status" value={form.status} onChange={handleChange}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600">Status</label>
-                <select name="status" value={form.status} onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <div className="modal-actions">
+                <button type="submit" className="btn-submit">{editId ? 'Update Employee' : 'Add Employee'}</button>
+                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
               </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm">
-                  {editId ? 'Update' : 'Add Employee'}
-                </button>
-                <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 text-sm">
-                  Cancel
-                </button>
-              </div>
-            </form> 
+            </form>
           </div>
         </div>
       )}

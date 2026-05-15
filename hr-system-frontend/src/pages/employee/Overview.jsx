@@ -37,7 +37,7 @@ function Overview() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome, {user.username}! 👋</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome, {user.username}! </h2>
       <p className="text-gray-500 text-sm mb-6">Here's your summary.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">

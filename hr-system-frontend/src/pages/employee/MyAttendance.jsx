@@ -40,7 +40,7 @@ function MyAttendance() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">🕐 My Attendance</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6"> My Attendance</h2>
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-600 uppercase text-xs">

@@ -21,7 +21,6 @@ function Login() {
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('role', res.data.user.role)
       localStorage.setItem('user', JSON.stringify(res.data.user))
-
       if (res.data.user.role === 'admin') {
         navigate('/admin')
       } else {
@@ -35,13 +34,15 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center text-blue-700 mb-2">HR System</h1>
-        <p className="text-center text-gray-500 mb-6">Sign in to your account</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f6f0' }}>
+      <div className="bg-white p-8 rounded-2xl w-full max-w-md" style={{ border: '0.5px solid #d4dcc4' }}>
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-medium" style={{ color: '#3d5226' }}>HR System</h1>
+          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+        </div>
 
         {error && (
-          <div className="bg-red-100 text-red-600 px-4 py-2 rounded mb-4 text-sm">
+          <div className="px-4 py-2 rounded mb-4 text-sm" style={{ background: '#fde8e8', color: '#7a2d2d' }}>
             {error}
           </div>
         )}
@@ -55,7 +56,8 @@ function Login() {
               value={form.email}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none"
+              style={{ focusBorderColor: '#3d5226' }}
               placeholder="you@example.com"
             />
           </div>
@@ -67,14 +69,15 @@ function Login() {
               value={form.password}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+            className="w-full text-white py-2 rounded-lg text-sm font-medium transition"
+            style={{ background: '#3d5226' }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
