@@ -4,11 +4,15 @@ const cors = require('cors');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
-const authRoutes       = require('./routes/auth');
-const employeeRoutes   = require('./routes/employees');
-const leaveRoutes      = require('./routes/leaves');
-const payrollRoutes    = require('./routes/payroll');
-const attendanceRoutes = require('./routes/attendance');
+const authRoutes        = require('./routes/auth');
+const employeeRoutes    = require('./routes/employees');
+const leaveRoutes       = require('./routes/leaves');
+const payrollRoutes     = require('./routes/payroll');
+const attendanceRoutes  = require('./routes/attendance');
+const departmentRoutes  = require('./routes/departments');
+const locationRoutes    = require('./routes/locations');
+const overtimeRoutes    = require('./routes/overtime');
+const userRoutes        = require('./routes/users');
 
 const app = express();
 
@@ -32,11 +36,15 @@ app.get('/health', (_req, res) => {
 });
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-app.use('/api/auth',       authRoutes);
+app.use('/api/auth',        authRoutes);
 app.use('/api/employees',  employeeRoutes);
 app.use('/api/leaves',     leaveRoutes);
 app.use('/api/payroll',    payrollRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/locations',  locationRoutes);
+app.use('/api/overtime',   overtimeRoutes);
+app.use('/api/users',      userRoutes);
 
 // ── 404 handler ────────────────────────────────────────────────────────────
 app.use((_req, res) => {
