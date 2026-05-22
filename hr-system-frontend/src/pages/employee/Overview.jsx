@@ -9,16 +9,23 @@ function Overview() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [att, leave, pay] = await Promise.all([
+        const [att, leave, pay, emp] = await Promise.all([
           axios.get('/attendance'),
           axios.get('/leave-appointments'),
           axios.get('/payroll'),
+          axios.get('/employees'),
         ])
-        setStats({
-          attendance: att.data.length,
-          leaves: leave.data.filter(l => l.status === 'pending').length,
-          payrolls: pay.data.length,
-        })
+
+        // Find this user's employee record
+        const myEmp = emp.data.find(e => e.user_id === user.id)
+
+        if (myEmp) {
+          setStats({
+            attendance: att.data.filter(a => a.employee_id === myEmp.id).length,
+            leaves: leave.data.filter(l => l.employee_id === myEmp.id && l.status === 'pending').length,
+            payrolls: pay.data.filter(p => p.employee_id === myEmp.id).length,
+          })
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -35,21 +42,25 @@ function Overview() {
     </div>
   )
 
+  const fullName = user.username || user.email
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome, {user.username}! </h2>
-      <p className="text-gray-500 text-sm mb-6">Here's your summary.</p>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        Welcome, {fullName}!
+      </h2>
+      <p className="text-gray-500 text-sm mb-6">Here's your personal summary.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
-          <p className="text-sm text-gray-500">Attendance Records</p>
+          <p className="text-sm text-gray-500">My Attendance Records</p>
           <p className="text-3xl font-bold text-gray-800 mt-1">{stats.attendance}</p>
         </div>
         <div className="bg-white rounded-xl shadow p-6 border-l-4 border-yellow-500">
-          <p className="text-sm text-gray-500">Pending Leaves</p>
+          <p className="text-sm text-gray-500">My Pending Leaves</p>
           <p className="text-3xl font-bold text-gray-800 mt-1">{stats.leaves}</p>
         </div>
         <div className="bg-white rounded-xl shadow p-6 border-l-4 border-purple-500">
-          <p className="text-sm text-gray-500">Payroll Records</p>
+          <p className="text-sm text-gray-500">My Payroll Records</p>
           <p className="text-3xl font-bold text-gray-800 mt-1">{stats.payrolls}</p>
         </div>
       </div>

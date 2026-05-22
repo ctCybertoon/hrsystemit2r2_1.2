@@ -239,14 +239,24 @@ function AdminLeaves() {
     try { await client.post('/leaves', form); setModal(false); fetchAll(); }
     catch (e) { setError(e.response?.data?.message || 'Something went wrong'); }
   };
+
+
   const approve = (id) => Alert.alert('Approve Leave', 'Approve and notify payroll?', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Approve', onPress: async () => { await client.patch(`/leaves/${id}/approve`); Alert.alert('Approved', 'Payroll system notified.'); fetchAll(); } },
   ]);
-  const reject = (id) => Alert.alert('Reject', 'Reject this request?', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Reject', style: 'destructive', onPress: async () => { await client.patch(`/leaves/${id}/reject`); fetchAll(); } },
-  ]);
+
+
+  const reject = async (id) => {
+  try {
+    await client.patch(`/leaves/${id}/reject`);
+    fetchAll();
+  } catch (e) {
+    Alert.alert('Error', e.response?.data?.message || 'Failed to reject leave.');
+  }
+};
+
+
   const handleDelete = (id) => confirmDelete('leave request', async () => { await client.delete(`/leave-appointments/${id}`); fetchAll(); });
   if (loading) return <View style={s.center}><ActivityIndicator size="large" color="#3d5a2e" /></View>;
   const STATUS_MAP = { pending: { bg: '#fef3c7', color: '#d97706' }, approved: { bg: '#dcfce7', color: '#16a34a' }, rejected: { bg: '#fee2e2', color: '#dc2626' } };
