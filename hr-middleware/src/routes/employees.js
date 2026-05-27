@@ -58,16 +58,23 @@ router.get('/:id/summary', async (req, res) => {
       laravelClient.get(`/attendance?employee_id=${id}`, { forwardToken: token }),
     ]);
 
-    const employee = employeeRes.status === 'fulfilled' ? employeeRes.value.data : null;
-    if (!employee) {
-      return res.status(404).json({ message: 'Employee not found' });
-    }
+    const employee   = employeeRes.status === 'fulfilled' ? employeeRes.value.data : null;
+    const allLeaves  = leavesRes.status   === 'fulfilled' ? leavesRes.value.data   : [];
+    const allPayroll = payrollRes.status  === 'fulfilled' ? payrollRes.value.data  : [];
+    const allAttend  = attendanceRes.status === 'fulfilled' ? attendanceRes.value.data : [];
+
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Filter by employee_id on middleware side as safety net
+    const leaves     = Array.isArray(allLeaves)  ? allLeaves.filter(l => l.employee_id == id)  : [];
+    const payroll    = Array.isArray(allPayroll) ? allPayroll.filter(p => p.employee_id == id) : [];
+    const attendance = Array.isArray(allAttend)  ? allAttend.filter(a => a.employee_id == id)  : [];
 
     res.json({
       employee,
-      leaves: leavesRes.status === 'fulfilled' ? leavesRes.value.data : [],
-      payroll: payrollRes.status === 'fulfilled' ? payrollRes.value.data : [],
-      attendance: attendanceRes.status === 'fulfilled' ? attendanceRes.value.data : [],
+      leaves,
+      payroll,
+      attendance,
       _meta: {
         generated_at: new Date().toISOString(),
         source: 'HR Middleware API Gateway',

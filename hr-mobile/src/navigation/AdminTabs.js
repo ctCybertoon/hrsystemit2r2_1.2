@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
+import { sendLeaveStatusEmail } from '../services/emailService';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -239,24 +240,67 @@ function AdminLeaves() {
     try { await client.post('/leaves', form); setModal(false); fetchAll(); }
     catch (e) { setError(e.response?.data?.message || 'Something went wrong'); }
   };
+  const approve = async (id) => {
+    try {
+      const { data } = await client.patch(`/leaves/${id}/approve`);
+      fetchAll();
 
-
-  const approve = (id) => Alert.alert('Approve Leave', 'Approve and notify payroll?', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Approve', onPress: async () => { await client.patch(`/leaves/${id}/approve`); Alert.alert('Approved', 'Payroll system notified.'); fetchAll(); } },
-  ]);
-
+      // Send email notification to employee
+      const leave = leaves.find(l => l.id === id);
+      if (leave?.employee?.email) {
+        const emailSent = await sendLeaveStatusEmail({
+          employeeName:  `${leave.employee.first_name} ${leave.employee.last_name}`,
+          employeeEmail: leave.employee.email,
+          status:        'approved',
+          leaveType:     leave.leave_type?.name,
+          startDate:     leave.start_date,
+          endDate:       leave.end_date,
+          reason:        leave.reason,
+        });
+        Alert.alert(
+          '✅ Leave Approved',
+          emailSent
+            ? 'Leave approved and email notification sent to employee.'
+            : 'Leave approved. Email notification could not be sent.',
+        );
+      } else {
+        Alert.alert('✅ Leave Approved', 'Payroll system notified.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.message || 'Failed to approve leave.');
+    }
+  };
 
   const reject = async (id) => {
-  try {
-    await client.patch(`/leaves/${id}/reject`);
-    fetchAll();
-  } catch (e) {
-    Alert.alert('Error', e.response?.data?.message || 'Failed to reject leave.');
-  }
-};
+    try {
+      await client.patch(`/leaves/${id}/reject`);
+      fetchAll();
 
-
+      // Send email notification to employee
+      const leave = leaves.find(l => l.id === id);
+      if (leave?.employee?.email) {
+        const emailSent = await sendLeaveStatusEmail({
+          employeeName:  `${leave.employee.first_name} ${leave.employee.last_name}`,
+          employeeEmail: leave.employee.email,
+          status:        'rejected',
+          leaveType:     leave.leave_type?.name,
+          startDate:     leave.start_date,
+          endDate:       leave.end_date,
+          reason:        leave.reason,
+        });
+        Alert.alert(
+          '❌ Leave Rejected',
+          emailSent
+            ? 'Leave rejected and email notification sent to employee.'
+            : 'Leave rejected. Email notification could not be sent.',
+        );
+      } else {
+        Alert.alert('❌ Leave Rejected', 'Leave has been rejected.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.message || 'Failed to reject leave.');
+    }
+  };
   const handleDelete = (id) => confirmDelete('leave request', async () => { await client.delete(`/leave-appointments/${id}`); fetchAll(); });
   if (loading) return <View style={s.center}><ActivityIndicator size="large" color="#3d5a2e" /></View>;
   const STATUS_MAP = { pending: { bg: '#fef3c7', color: '#d97706' }, approved: { bg: '#dcfce7', color: '#16a34a' }, rejected: { bg: '#fee2e2', color: '#dc2626' } };

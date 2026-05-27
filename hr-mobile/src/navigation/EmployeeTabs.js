@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, Alert, Modal, TextInput,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
@@ -9,18 +10,18 @@ import client from '../api/client';
 
 const Tab = createBottomTabNavigator();
 
-// ── My Dashboard ─────────────────────────────────────────────────────────────
+// ── My Dashboard ──────────────────────────────────────────────────────────────
 function MyDashboard() {
   const { user, logout } = useAuth();
-  const [summary, setSummary]   = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [summary, setSummary]       = useState(null);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchSummary = async () => {
     try {
-      // Get employee record linked to this user
       const meRes = await client.get('/auth/me');
-      const employeeId = meRes.data?.employee?.id || 1;
+      const employeeId = meRes.data?.employee?.id;
+      if (!employeeId) return;
       const { data } = await client.get(`/employees/${employeeId}/summary`);
       setSummary(data);
     } catch (e) { console.log('Dashboard error:', e.response?.data || e.message); }
@@ -73,9 +74,8 @@ function MyDashboard() {
   );
 }
 
-// ── My Leave ─────────────────────────────────────────────────────────────────
+// ── My Leave ──────────────────────────────────────────────────────────────────
 function MyLeave() {
-  const { user } = useAuth();
   const [leaves, setLeaves]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,8 +90,7 @@ function MyLeave() {
       setEmployeeId(empId);
       setForm(f => ({ ...f, employee_id: String(empId) }));
       const { data } = await client.get('/leaves');
-      // Filter only this employee's leaves
-      const mine = empId ? data.filter(l => l.employee_id === empId) : data;
+      const mine = data.filter(l => l.employee_id === empId);
       setLeaves(mine);
     } catch (e) { console.log(e); }
     finally { setLoading(false); setRefreshing(false); }
@@ -143,21 +142,23 @@ function MyLeave() {
       </ScrollView>
 
       <Modal visible={modal} animationType="slide" transparent>
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>File a Leave Request</Text>
-            <Text style={s.label}>Leave Type ID (1=Vacation, 2=Sick, 5=Paternity)</Text>
-            <TextInput style={s.input} value={form.leave_type_id} onChangeText={v => setForm({ ...form, leave_type_id: v })} placeholder="e.g. 1" keyboardType="numeric" />
-            <Text style={s.label}>Start Date (YYYY-MM-DD)</Text>
-            <TextInput style={s.input} value={form.start_date} onChangeText={v => setForm({ ...form, start_date: v })} placeholder="2026-06-01" />
-            <Text style={s.label}>End Date (YYYY-MM-DD)</Text>
-            <TextInput style={s.input} value={form.end_date} onChangeText={v => setForm({ ...form, end_date: v })} placeholder="2026-06-05" />
-            <Text style={s.label}>Reason</Text>
-            <TextInput style={[s.input, { height: 70 }]} value={form.reason} onChangeText={v => setForm({ ...form, reason: v })} placeholder="State your reason..." multiline />
-            <TouchableOpacity style={s.submitBtn} onPress={submit}><Text style={s.submitText}>Submit</Text></TouchableOpacity>
-            <TouchableOpacity style={s.cancelBtn} onPress={() => setModal(false)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={s.modalOverlay}>
+            <View style={s.modalCard}>
+              <Text style={s.modalTitle}>File a Leave Request</Text>
+              <Text style={s.label}>Leave Type ID (1=Vacation, 2=Sick, 5=Paternity)</Text>
+              <TextInput style={s.input} value={form.leave_type_id} onChangeText={v => setForm({ ...form, leave_type_id: v })} placeholder="e.g. 1" keyboardType="numeric" />
+              <Text style={s.label}>Start Date (YYYY-MM-DD)</Text>
+              <TextInput style={s.input} value={form.start_date} onChangeText={v => setForm({ ...form, start_date: v })} placeholder="2026-06-01" />
+              <Text style={s.label}>End Date (YYYY-MM-DD)</Text>
+              <TextInput style={s.input} value={form.end_date} onChangeText={v => setForm({ ...form, end_date: v })} placeholder="2026-06-05" />
+              <Text style={s.label}>Reason</Text>
+              <TextInput style={[s.input, { height: 70 }]} value={form.reason} onChangeText={v => setForm({ ...form, reason: v })} placeholder="State your reason..." multiline />
+              <TouchableOpacity style={s.submitBtn} onPress={submit}><Text style={s.submitText}>Submit</Text></TouchableOpacity>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setModal(false)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -165,21 +166,22 @@ function MyLeave() {
 
 // ── My Payroll ────────────────────────────────────────────────────────────────
 function MyPayroll() {
-  const [data, setData]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]             = useState(null);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetch = async () => {
+  const fetchPayroll = async () => {
     try {
       const meRes = await client.get('/auth/me');
       const empId = meRes.data?.employee?.id;
-      const res   = await client.get(`/payroll/employee/${empId}/full`);
+      if (!empId) return;
+      const res = await client.get(`/payroll/employee/${empId}/full`);
       setData(res.data);
-    } catch (e) { console.log(e); }
+    } catch (e) { console.log('Payroll error:', e.response?.data || e.message); }
     finally { setLoading(false); setRefreshing(false); }
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { fetchPayroll(); }, []);
 
   if (loading) return <View style={s.center}><ActivityIndicator size="large" color="#3d5a2e" /></View>;
 
@@ -188,7 +190,7 @@ function MyPayroll() {
 
   return (
     <ScrollView style={s.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetch(); }} colors={['#3d5a2e']} />}>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPayroll(); }} colors={['#3d5a2e']} />}>
       <View style={s.header}>
         <Text style={s.headerTitle}>My Payroll</Text>
         <Text style={s.headerSub}>Latest payslip</Text>
@@ -228,11 +230,11 @@ function MyPayroll() {
 
 // ── My Attendance ─────────────────────────────────────────────────────────────
 function MyAttendance() {
-  const [records, setRecords]   = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [records, setRecords]       = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetch = async () => {
+  const fetchAttendance = async () => {
     try {
       const meRes = await client.get('/auth/me');
       const empId = meRes.data?.employee?.id;
@@ -243,7 +245,7 @@ function MyAttendance() {
     finally { setLoading(false); setRefreshing(false); }
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { fetchAttendance(); }, []);
 
   const STATUS_COLOR = { present: '#10b981', absent: '#ef4444', late: '#f59e0b' };
 
@@ -251,7 +253,7 @@ function MyAttendance() {
 
   return (
     <ScrollView style={s.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetch(); }} colors={['#3d5a2e']} />}>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAttendance(); }} colors={['#3d5a2e']} />}>
       <View style={s.header}>
         <Text style={s.headerTitle}>My Attendance</Text>
         <Text style={s.headerSub}>{records.length} records</Text>
@@ -342,54 +344,54 @@ export default function EmployeeTabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       })}
     >
-      <Tab.Screen name="Dashboard"    component={MyDashboard} />
-      <Tab.Screen name="My Leave"     component={MyLeave} />
-      <Tab.Screen name="My Payroll"   component={MyPayroll} />
+      <Tab.Screen name="Dashboard"     component={MyDashboard} />
+      <Tab.Screen name="My Leave"      component={MyLeave} />
+      <Tab.Screen name="My Payroll"    component={MyPayroll} />
       <Tab.Screen name="My Attendance" component={MyAttendance} />
-      <Tab.Screen name="Profile"      component={MyProfile} />
+      <Tab.Screen name="Profile"       component={MyProfile} />
     </Tab.Navigator>
   );
 }
 
 // ── Shared Styles ─────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#f3f4f6' },
-  center:       { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header:       { backgroundColor: '#3d5a2e', padding: 20, paddingTop: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  headerTitle:  { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  headerSub:    { color: '#a7f3d0', fontSize: 13 },
-  headerRole:   { color: '#a7f3d0', fontSize: 13, marginTop: 2 },
-  logoutBtn:    { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  logoutText:   { color: '#fff', fontSize: 13 },
-  logoutBtnFull:{ margin: 16, backgroundColor: '#fee2e2', borderRadius: 12, padding: 16, alignItems: 'center' },
+  container:     { flex: 1, backgroundColor: '#f3f4f6' },
+  center:        { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header:        { backgroundColor: '#3d5a2e', padding: 20, paddingTop: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  headerTitle:   { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  headerSub:     { color: '#a7f3d0', fontSize: 13 },
+  headerRole:    { color: '#a7f3d0', fontSize: 13, marginTop: 2 },
+  logoutBtn:     { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  logoutText:    { color: '#fff', fontSize: 13 },
+  logoutBtnFull: { margin: 16, backgroundColor: '#fee2e2', borderRadius: 12, padding: 16, alignItems: 'center' },
   logoutFullText:{ color: '#dc2626', fontWeight: '700', fontSize: 15 },
-  grid:         { flexDirection: 'row', flexWrap: 'wrap', padding: 8 },
-  statCard:     { backgroundColor: '#fff', borderRadius: 12, margin: 8, padding: 16, width: '44%', elevation: 2 },
-  statNum:      { fontSize: 28, fontWeight: 'bold', color: '#1f2937' },
-  statLabel:    { fontSize: 12, color: '#6b7280', marginTop: 4 },
-  metaBadge:    { margin: 16, marginBottom: 0, backgroundColor: '#ecfdf5', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#6ee7b7' },
-  metaText:     { color: '#065f46', fontSize: 12, textAlign: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
-  card:         { backgroundColor: '#fff', borderRadius: 12, margin: 12, marginBottom: 0, padding: 16, elevation: 2, flexDirection: 'row', gap: 12 },
-  cardTitle:    { fontSize: 15, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
-  cardSub:      { fontSize: 13, color: '#6b7280', marginBottom: 2 },
-  badge:        { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
-  badgeText:    { fontSize: 11, fontWeight: '700' },
-  addBtn:       { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  addBtnText:   { color: '#fff', fontSize: 13, fontWeight: '600' },
-  empty:        { textAlign: 'center', color: '#9ca3af', marginTop: 40 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard:    { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 },
-  modalTitle:   { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 16 },
-  label:        { fontSize: 13, color: '#374151', marginBottom: 4, fontWeight: '600' },
-  input:        { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 14, color: '#1f2937' },
-  submitBtn:    { backgroundColor: '#3d5a2e', borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 4 },
-  submitText:   { color: '#fff', fontWeight: '700', fontSize: 15 },
-  cancelBtn:    { padding: 14, alignItems: 'center' },
-  cancelText:   { color: '#6b7280', fontSize: 14 },
-  avatar:       { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText:   { color: '#fff', fontSize: 26, fontWeight: 'bold' },
-  netPayRow:    { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ecfdf5', borderRadius: 8, padding: 10, marginTop: 8 },
-  netPayLabel:  { color: '#065f46', fontWeight: '700', fontSize: 14 },
-  netPayValue:  { color: '#065f46', fontWeight: '800', fontSize: 16 },
+  grid:          { flexDirection: 'row', flexWrap: 'wrap', padding: 8 },
+  statCard:      { backgroundColor: '#fff', borderRadius: 12, margin: 8, padding: 16, width: '44%', elevation: 2 },
+  statNum:       { fontSize: 28, fontWeight: 'bold', color: '#1f2937' },
+  statLabel:     { fontSize: 12, color: '#6b7280', marginTop: 4 },
+  metaBadge:     { margin: 16, marginBottom: 0, backgroundColor: '#ecfdf5', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#6ee7b7' },
+  metaText:      { color: '#065f46', fontSize: 12, textAlign: 'center' },
+  sectionTitle:  { fontSize: 16, fontWeight: '700', color: '#1f2937', marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
+  card:          { backgroundColor: '#fff', borderRadius: 12, margin: 12, marginBottom: 0, padding: 16, elevation: 2, flexDirection: 'row', gap: 12 },
+  cardTitle:     { fontSize: 15, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
+  cardSub:       { fontSize: 13, color: '#6b7280', marginBottom: 2 },
+  badge:         { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
+  badgeText:     { fontSize: 11, fontWeight: '700' },
+  addBtn:        { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  addBtnText:    { color: '#fff', fontSize: 13, fontWeight: '600' },
+  empty:         { textAlign: 'center', color: '#9ca3af', marginTop: 40 },
+  modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard:     { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 },
+  modalTitle:    { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 16 },
+  label:         { fontSize: 13, color: '#374151', marginBottom: 4, fontWeight: '600' },
+  input:         { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 14, color: '#1f2937' },
+  submitBtn:     { backgroundColor: '#3d5a2e', borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 4 },
+  submitText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+  cancelBtn:     { padding: 14, alignItems: 'center' },
+  cancelText:    { color: '#6b7280', fontSize: 14 },
+  avatar:        { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  avatarText:    { color: '#fff', fontSize: 26, fontWeight: 'bold' },
+  netPayRow:     { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ecfdf5', borderRadius: 8, padding: 10, marginTop: 8 },
+  netPayLabel:   { color: '#065f46', fontWeight: '700', fontSize: 14 },
+  netPayValue:   { color: '#065f46', fontWeight: '800', fontSize: 16 },
 });
